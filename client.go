@@ -8,7 +8,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -39,22 +38,7 @@ type Client struct {
 
 	PenaltyTicket  string
 
-	WebSocketToken string
-
-	PublicWSAddress  string
-	PrivateWSAddress string
-
-	NonceMutex sync.Mutex
-	LastNonce  int64
-
-	Connections map[string]Connection
-
 	RequestPool map[int64]chan Message
-
-	Tickers map[string]*time.Ticker
-
-	//Handler Handler
-
 }
 
 func NewClient(

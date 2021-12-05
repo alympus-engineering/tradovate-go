@@ -43,8 +43,7 @@ func Listener(c *Client) {
 			case 'o':
 				c.Connected = true
 			case 'h':
-				println("heartbeat")
-
+				c.LastHeartbeatResponse = time.Now()
 			case 'a':
 				var frame []Message
 				err = json.Unmarshal(body, &frame)
@@ -60,7 +59,7 @@ func Listener(c *Client) {
 				}
 
 			case 'c':
-				print("")
+				c.Connected = false
 			default:
 				return
 			}

@@ -17,28 +17,29 @@ type Connection struct {
 }
 
 type Client struct {
-	AppName    string
-	AppVersion string
+	AppName    				string
+	AppVersion 				string
 
-	HttpHost      string
-	WebsocketHost string
-	Username      string
-	Password      string
-	ClientId      string
-	ApiKey        string
-	DeviceId      string
+	HttpHost      			string
+	WebsocketHost 			string
+	Username      			string
+	Password      			string
+	ClientId      			string
+	ApiKey        			string
+	DeviceId      			string
 
-	Connection *websocket.Conn
-	Connected  bool
+	Connection 				*websocket.Conn
+	Connected  				bool
 
-	AccessToken     string
-	TokenExpiration time.Time
+	AccessToken     		string
+	TokenExpiration 		time.Time
 
-	HeartbeatTicker *time.Ticker
+	HeartbeatTicker 		*time.Ticker
+	LastHeartbeatResponse 	time.Time
 
-	PenaltyTicket  string
+	PenaltyTicket  			string
 
-	RequestPool map[int64]chan Message
+	RequestPool 			map[int64]chan Message
 }
 
 func NewClient(

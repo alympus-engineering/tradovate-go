@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,9 @@ type Client struct {
 	PenaltyTicket  			string
 
 	RequestPool 			map[int64]chan Message
+	LastRequestId			int64
+
+	MarketData				map[string][]Tick
 }
 
 func NewClient(
@@ -50,13 +54,22 @@ func NewClient(
 
 	if strings.ToLower(environment) == "live" {
 		httpHost = "https://live.tradovateapi.com/v1"
-		wsHost = "wss://live.tradovateapi.com/v1"
+		wsHost = "wss://md.tradovateapi.com/v1"
 	} else if strings.ToLower(environment) == "demo" {
 		httpHost = "https://demo.tradovateapi.com/v1"
 		wsHost = "wss://demo.tradovateapi.com/v1"
 	}
 
-	deviceId := uuid.New()
+	var deviceId uuid.UUID
+
+	b, err := os.ReadFile("/tmp/tradovate-device-id")
+	if err != nil {
+		deviceId = uuid.New()
+		os.WriteFile("/tmp/tradovate-device-id", []byte(deviceId.String()), os.ModePerm)
+
+	} else {
+		deviceId = uuid.MustParse(string(b))
+	}
 
 	return &Client{
 		AppName:       appName,
@@ -187,5 +200,11 @@ func (c *Client) SendAsync(endpoint string, queryParams string, body string) (in
 }
 
 func (c *Client) getRequestId() int64 {
-	return time.Now().Unix()
+	id := time.Now().Unix()
+	if id == c.LastRequestId {
+		c.LastRequestId = id + 1
+		return id + 1
+	}
+	c.LastRequestId = id
+	return id
 }

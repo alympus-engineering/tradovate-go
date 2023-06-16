@@ -10,4 +10,5 @@ const (
 	UNSUBSCRIBE_QOUTE = "md/unsubscribeQuote"
 	GET_ORDERS        = "order/list"
 	GET_FILLED_ORDERS = "fill/list"
+	GET_EXCHANGE_LIST = "exchange/list"
 )

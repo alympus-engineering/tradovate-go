@@ -2,16 +2,17 @@ package tradovate
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"time"
 )
 
 type Message struct {
-	Id 			int64 `json:"i,omitempty"`
-	Status 		int `json:"s,omitempty"`
-	EventType 	string `json:"e,omitempty"`
-	Data 		json.RawMessage `json:"d,omitempty"`
+	Id        int64           `json:"i,omitempty"`
+	Status    int             `json:"s,omitempty"`
+	EventType string          `json:"e,omitempty"`
+	Data      json.RawMessage `json:"d,omitempty"`
 }
 
 func Listener(c *Client) {
@@ -21,7 +22,9 @@ func Listener(c *Client) {
 		select {
 		case _ = <-c.HeartbeatTicker.C:
 			if c.Connected {
+				c.ConnectionMutex.Lock()
 				err := c.Connection.WriteMessage(websocket.TextMessage, []byte("[]"))
+				c.ConnectionMutex.Unlock()
 				if err != nil {
 					log.Println("ERROR: listener exiting ", err)
 					return
@@ -35,7 +38,7 @@ func Listener(c *Client) {
 				log.Println("ERROR: listener exiting ", err)
 				return
 			}
-
+			fmt.Printf("%s \n\n", msg)
 			// Determine Message Frame Type
 			// https://api.tradovate.com/#section/Connecting-to-the-WebSocket-Server
 			frameType, body := msg[0], msg[1:]
@@ -82,8 +85,6 @@ func Listener(c *Client) {
 			default:
 				return
 			}
-
-
 
 			//if err == nil {
 			//	err = handleResponse(resp, c, listenerType)

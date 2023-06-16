@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,32 +19,33 @@ type Connection struct {
 }
 
 type Client struct {
-	AppName    				string
-	AppVersion 				string
+	AppName    string
+	AppVersion string
 
-	HttpHost      			string
-	WebsocketHost 			string
-	Username      			string
-	Password      			string
-	ClientId      			string
-	ApiKey        			string
-	DeviceId      			string
+	HttpHost      string
+	WebsocketHost string
+	Username      string
+	Password      string
+	ClientId      string
+	ApiKey        string
+	DeviceId      string
 
-	Connection 				*websocket.Conn
-	Connected  				bool
+	ConnectionMutex sync.Mutex
+	Connection      *websocket.Conn
+	Connected       bool
 
-	AccessToken     		string
-	TokenExpiration 		time.Time
+	AccessToken     string
+	TokenExpiration time.Time
 
-	HeartbeatTicker 		*time.Ticker
-	LastHeartbeatResponse 	time.Time
+	HeartbeatTicker       *time.Ticker
+	LastHeartbeatResponse time.Time
 
-	PenaltyTicket  			string
+	PenaltyTicket string
 
-	RequestPool 			map[int64]chan Message
-	LastRequestId			int64
+	RequestPool   map[int64]chan Message
+	LastRequestId int64
 
-	MarketData				map[string][]Tick
+	MarketData map[string][]Tick
 }
 
 func NewClient(
@@ -54,7 +56,7 @@ func NewClient(
 
 	if strings.ToLower(environment) == "live" {
 		httpHost = "https://live.tradovateapi.com/v1"
-		wsHost = "wss://md.tradovateapi.com/v1"
+		wsHost = "wss://live.tradovateapi.com/v1"
 	} else if strings.ToLower(environment) == "demo" {
 		httpHost = "https://demo.tradovateapi.com/v1"
 		wsHost = "wss://demo.tradovateapi.com/v1"
@@ -98,7 +100,6 @@ func (c *Client) ConnectWebsocket() (err error) {
 		err = c.GetAccessToken()
 	}
 
-
 	url := c.WebsocketHost + CONNECT_WEBSOCKET
 
 	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
@@ -113,20 +114,18 @@ func (c *Client) ConnectWebsocket() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	connectionLoop:
-		for {
-			select {
-			case _ = <-ctx.Done():
-				return errors.New("timeout while waiting for websocket to connect")
-			default:
-				if c.Connected {
-					break connectionLoop
-				}
-				time.Sleep(1 * time.Second)
+connectionLoop:
+	for {
+		select {
+		case _ = <-ctx.Done():
+			return errors.New("timeout while waiting for websocket to connect")
+		default:
+			if c.Connected {
+				break connectionLoop
 			}
+			time.Sleep(1 * time.Second)
 		}
-
-
+	}
 
 	err = c.SendAuthorization()
 
@@ -163,7 +162,9 @@ func (c *Client) Send(endpoint string, queryParams string, body string, timeout 
 	channel := make(chan Message)
 	c.RequestPool[id] = channel
 
+	c.ConnectionMutex.Lock()
 	err := c.Connection.WriteMessage(websocket.TextMessage, []byte(sb.String()))
+	c.ConnectionMutex.Unlock()
 
 	if err != nil {
 		return nil, err
